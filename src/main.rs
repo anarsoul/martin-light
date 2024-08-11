@@ -1,7 +1,6 @@
-use embedded_svc::mqtt::client::{
-    Details::Complete, EventPayload::Error, EventPayload::Received, QoS,
-};
+use embedded_svc::mqtt::client::{Details::Complete, EventPayload::*, QoS};
 use esp_idf_hal::delay::FreeRtos;
+use esp_idf_hal::gpio::*;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::mqtt::client::{Details, EspMqttClient, MqttClientConfiguration};
@@ -31,33 +30,34 @@ pub struct Config {
 }
 
 #[derive(Clone)]
-enum Mode {
+enum Message {
     Cycle,
     Red,
     Yellow,
     Green,
     Blue,
     Purple,
+    Connected,
 }
 
-impl From<String> for Mode {
+impl From<String> for Message {
     fn from(string: String) -> Self {
         if string.eq("cycle") {
-            Mode::Cycle
+            Message::Cycle
         } else if string.eq("red") {
-            Mode::Red
+            Message::Red
         } else if string.eq("yellow") {
-            Mode::Yellow
+            Message::Yellow
         } else if string.eq("green") {
-            Mode::Green
+            Message::Green
         } else if string.eq("blue") {
-            Mode::Blue
+            Message::Blue
         } else if string.eq("purple") {
-            Mode::Purple
+            Message::Purple
         } else {
             // Default to Cycle for unknown
             warn!("Unknown mode: {}, defaulting to Cycle", string);
-            Mode::Cycle
+            Message::Cycle
         }
     }
 }
@@ -98,23 +98,21 @@ fn main() {
         peripherals.pins.gpio5,
     );
 
-    let (tx, rx) = mpsc::channel::<Mode>();
+    let mut white_led = PinDriver::output(peripherals.pins.gpio19).unwrap();
+    white_led.set_low().unwrap();
+
+    let (tx, rx) = mpsc::channel::<Message>();
     let mut client =
         EspMqttClient::new_cb(
             &broker_url,
             &mqtt_config,
             move |message_event| match message_event.payload() {
+                Connected(_) => tx.send(Message::Connected).unwrap(),
                 Received { data, details, .. } => process_message(data, details, &tx),
                 Error(e) => warn!("Received error from MQTT: {:?}", e),
                 _ => info!("Received from MQTT: {:?}", message_event.payload()),
             },
         )
-        .unwrap();
-
-    // Yeah, a dirty hack. We need to give it some time to connect
-    FreeRtos::delay_ms(1000);
-    client
-        .subscribe("esp32/martin_light", QoS::AtLeastOnce)
         .unwrap();
 
     let mut cur_seq = get_cycle_seq();
@@ -127,12 +125,19 @@ fn main() {
                 if let Ok(new_mode) = rx.try_recv() {
                     out = true;
                     cur_seq = match new_mode {
-                        Mode::Cycle => get_cycle_seq(),
-                        Mode::Red => get_red_seq(),
-                        Mode::Yellow => get_yellow_seq(),
-                        Mode::Green => get_green_seq(),
-                        Mode::Blue => get_blue_seq(),
-                        Mode::Purple => get_purple_seq(),
+                        Message::Cycle => get_cycle_seq(),
+                        Message::Red => get_red_seq(),
+                        Message::Yellow => get_yellow_seq(),
+                        Message::Green => get_green_seq(),
+                        Message::Blue => get_blue_seq(),
+                        Message::Purple => get_purple_seq(),
+                        Message::Connected => {
+                            out = false;
+                            client
+                                .subscribe("esp32/martin_light", QoS::AtLeastOnce)
+                                .unwrap();
+                            cur_seq
+                        }
                     };
                     break;
                 }
@@ -145,9 +150,8 @@ fn main() {
     }
 }
 
-fn process_message(data: &[u8], details: Details, tx: &mpsc::Sender<Mode>) {
+fn process_message(data: &[u8], details: Details, tx: &mpsc::Sender<Message>) {
     if details == Complete {
-        info!("{:?}", data);
         let message_data: &[u8] = data;
         if let Ok(mode) = String::from_utf8(message_data.into()) {
             info!("mode: {}", mode);
