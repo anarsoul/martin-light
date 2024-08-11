@@ -1,6 +1,6 @@
-use esp_idf_hal::peripheral::Peripheral;
-use esp_idf_hal::into_ref;
 use esp_idf_hal::gpio::*;
+use esp_idf_hal::into_ref;
+use esp_idf_hal::peripheral::Peripheral;
 
 pub struct LedDriver<'d> {
     red: PinDriver<'d, AnyOutputPin, Output>,
@@ -30,5 +30,3 @@ impl<'d> LedDriver<'d> {
         self.blue.set_level(blue.into()).unwrap();
     }
 }
-
-
