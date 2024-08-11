@@ -1,5 +1,5 @@
 [package]
-name = "esp-c3-2024"
+name = "martin-light"
 version = "0.1.0"
 authors = ["Vasily Khoruzhick <anarsoul@gmail.com>"]
 edition = "2021"
@@ -7,7 +7,7 @@ resolver = "2"
 rust-version = "1.77"
 
 [[bin]]
-name = "esp-c3-2024"
+name = "martin-light"
 harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
 
 # WiFi gets broken if optimization is enabled

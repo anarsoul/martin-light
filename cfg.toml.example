@@ -1,4 +1,4 @@
-[esp-c3-2024]
+[martin-light]
 mqtt_user = "horse"
 mqtt_pass = "CorrectHorseBatteryStaple"
 mqtt_host = "yourpc.local"

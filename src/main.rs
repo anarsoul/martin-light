@@ -2,9 +2,6 @@ use embedded_svc::mqtt::client::{
     Details::Complete, EventPayload::Error, EventPayload::Received, QoS,
 };
 use esp_idf_hal::delay::FreeRtos;
-use esp_idf_hal::gpio::*;
-use esp_idf_hal::into_ref;
-use esp_idf_hal::peripheral::Peripheral;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::prelude::Peripherals;
 use esp_idf_svc::mqtt::client::{Details, EspMqttClient, MqttClientConfiguration};
@@ -12,6 +9,12 @@ use log::{info, warn};
 use std::str;
 use std::sync::mpsc;
 use wifi::wifi;
+
+mod led_driver;
+use led_driver::LedDriver;
+
+mod sequences;
+use sequences::*;
 
 #[toml_cfg::toml_config]
 pub struct Config {
@@ -27,48 +30,12 @@ pub struct Config {
     wifi_psk: &'static str,
 }
 
-struct LedDriver<'d> {
-    red: PinDriver<'d, AnyOutputPin, Output>,
-    green: PinDriver<'d, AnyOutputPin, Output>,
-    blue: PinDriver<'d, AnyOutputPin, Output>,
-}
-
-struct Color {
-    red: bool,
-    green: bool,
-    blue: bool,
-    duration: i32,
-}
-
 enum Mode {
     Cycle,
     Red,
     Yellow,
     Green,
     Blue,
-}
-
-impl<'d> LedDriver<'d> {
-    pub fn new(
-        red_pin: impl Peripheral<P = impl OutputPin> + 'd,
-        green_pin: impl Peripheral<P = impl OutputPin> + 'd,
-        blue_pin: impl Peripheral<P = impl OutputPin> + 'd,
-    ) -> Self {
-        into_ref!(red_pin);
-        into_ref!(green_pin);
-        into_ref!(blue_pin);
-        let red: PinDriver<AnyOutputPin, Output> = PinDriver::output(red_pin.map_into()).unwrap();
-        let green: PinDriver<AnyOutputPin, Output> =
-            PinDriver::output(green_pin.map_into()).unwrap();
-        let blue: PinDriver<AnyOutputPin, Output> = PinDriver::output(blue_pin.map_into()).unwrap();
-        Self { red, green, blue }
-    }
-
-    pub fn set_leds(&mut self, red: bool, green: bool, blue: bool) {
-        self.red.set_level(red.into()).unwrap();
-        self.green.set_level(green.into()).unwrap();
-        self.blue.set_level(blue.into()).unwrap();
-    }
 }
 
 fn main() {
@@ -126,71 +93,21 @@ fn main() {
         .subscribe("esp32/martin_light", QoS::AtLeastOnce)
         .unwrap();
 
-    let cycle_seq: Vec<Color> = vec![
-        Color {
-            red: true,
-            green: false,
-            blue: false,
-            duration: 3000,
-        },
-        Color {
-            red: true,
-            green: true,
-            blue: false,
-            duration: 1000,
-        },
-        Color {
-            red: false,
-            green: true,
-            blue: false,
-            duration: 3000,
-        },
-        Color {
-            red: true,
-            green: true,
-            blue: false,
-            duration: 1000,
-        },
-    ];
-    let red_seq: Vec<Color> = vec![Color {
-        red: true,
-        green: false,
-        blue: false,
-        duration: 1000,
-    }];
-    let green_seq: Vec<Color> = vec![Color {
-        red: false,
-        green: true,
-        blue: false,
-        duration: 1000,
-    }];
-    let yellow_seq: Vec<Color> = vec![Color {
-        red: true,
-        green: true,
-        blue: false,
-        duration: 3000,
-    }];
-    let blue_seq: Vec<Color> = vec![Color {
-        red: false,
-        green: false,
-        blue: true,
-        duration: 3000,
-    }];
-    let mut cur_seq = &cycle_seq;
+    let mut cur_seq = get_cycle_seq();
 
     loop {
-        for state in cur_seq {
+        for state in cur_seq.clone() {
             let mut out = false;
             led_driver.set_leds(state.red, state.green, state.blue);
             for _ in 1..state.duration / 10 {
                 if let Ok(new_mode) = rx.try_recv() {
                     out = true;
                     match new_mode {
-                        Mode::Cycle => cur_seq = &cycle_seq,
-                        Mode::Red => cur_seq = &red_seq,
-                        Mode::Yellow => cur_seq = &yellow_seq,
-                        Mode::Green => cur_seq = &green_seq,
-                        Mode::Blue => cur_seq = &blue_seq,
+                        Mode::Cycle => cur_seq = get_cycle_seq(),
+                        Mode::Red => cur_seq = get_red_seq(),
+                        Mode::Yellow => cur_seq = get_yellow_seq(),
+                        Mode::Green => cur_seq = get_green_seq(),
+                        Mode::Blue => cur_seq = get_blue_seq(),
                     }
                     break;
                 }
