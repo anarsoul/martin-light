@@ -36,6 +36,7 @@ enum Mode {
     Yellow,
     Green,
     Blue,
+    Purple,
 }
 
 fn main() {
@@ -108,6 +109,7 @@ fn main() {
                         Mode::Yellow => cur_seq = get_yellow_seq(),
                         Mode::Green => cur_seq = get_green_seq(),
                         Mode::Blue => cur_seq = get_blue_seq(),
+                        Mode::Purple => cur_seq = get_purple_seq(),
                     }
                     break;
                 }
@@ -136,6 +138,8 @@ fn process_message(data: &[u8], details: Details, tx: &mpsc::Sender<Mode>) {
                 tx.send(Mode::Green).unwrap();
             } else if command.eq("blue") {
                 tx.send(Mode::Blue).unwrap();
+            } else if command.eq("purple") {
+                tx.send(Mode::Purple).unwrap();
             }
         }
     }
