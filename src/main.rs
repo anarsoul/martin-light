@@ -30,6 +30,7 @@ pub struct Config {
     wifi_psk: &'static str,
 }
 
+#[derive(Clone)]
 enum Mode {
     Cycle,
     Red,
@@ -37,6 +38,28 @@ enum Mode {
     Green,
     Blue,
     Purple,
+}
+
+impl From<String> for Mode {
+    fn from(string: String) -> Self {
+        if string.eq("cycle") {
+            Mode::Cycle
+        } else if string.eq("red") {
+            Mode::Red
+        } else if string.eq("yellow") {
+            Mode::Yellow
+        } else if string.eq("green") {
+            Mode::Green
+        } else if string.eq("blue") {
+            Mode::Blue
+        } else if string.eq("purple") {
+            Mode::Purple
+        } else {
+            // Default to Cycle for unknown
+            warn!("Unknown mode: {}, defaulting to Cycle", string);
+            Mode::Cycle
+        }
+    }
 }
 
 fn main() {
@@ -103,14 +126,14 @@ fn main() {
             for _ in 1..state.duration / 10 {
                 if let Ok(new_mode) = rx.try_recv() {
                     out = true;
-                    match new_mode {
-                        Mode::Cycle => cur_seq = get_cycle_seq(),
-                        Mode::Red => cur_seq = get_red_seq(),
-                        Mode::Yellow => cur_seq = get_yellow_seq(),
-                        Mode::Green => cur_seq = get_green_seq(),
-                        Mode::Blue => cur_seq = get_blue_seq(),
-                        Mode::Purple => cur_seq = get_purple_seq(),
-                    }
+                    cur_seq = match new_mode {
+                        Mode::Cycle => get_cycle_seq(),
+                        Mode::Red => get_red_seq(),
+                        Mode::Yellow => get_yellow_seq(),
+                        Mode::Green => get_green_seq(),
+                        Mode::Blue => get_blue_seq(),
+                        Mode::Purple => get_purple_seq(),
+                    };
                     break;
                 }
                 FreeRtos::delay_ms(10);
@@ -126,21 +149,9 @@ fn process_message(data: &[u8], details: Details, tx: &mpsc::Sender<Mode>) {
     if details == Complete {
         info!("{:?}", data);
         let message_data: &[u8] = data;
-        if let Ok(command) = str::from_utf8(message_data) {
-            info!("Command: {}", command);
-            if command.eq("cycle") {
-                tx.send(Mode::Cycle).unwrap();
-            } else if command.eq("red") {
-                tx.send(Mode::Red).unwrap();
-            } else if command.eq("yellow") {
-                tx.send(Mode::Yellow).unwrap();
-            } else if command.eq("green") {
-                tx.send(Mode::Green).unwrap();
-            } else if command.eq("blue") {
-                tx.send(Mode::Blue).unwrap();
-            } else if command.eq("purple") {
-                tx.send(Mode::Purple).unwrap();
-            }
+        if let Ok(mode) = String::from_utf8(message_data.into()) {
+            info!("mode: {}", mode);
+            tx.send(mode.into()).unwrap();
         }
     }
 }
