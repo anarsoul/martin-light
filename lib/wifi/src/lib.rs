@@ -1,8 +1,8 @@
 use anyhow::{bail, Result};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    nvs::EspDefaultNvsPartition,
     hal::peripheral,
+    nvs::EspDefaultNvsPartition,
     wifi::{AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi},
 };
 use log::info;
