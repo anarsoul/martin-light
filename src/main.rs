@@ -56,7 +56,7 @@ impl From<String> for Message {
             Message::Purple
         } else {
             // Default to Cycle for unknown
-            warn!("Unknown mode: {}, defaulting to Cycle", string);
+            warn!("Unknown mode: {string}, defaulting to Cycle");
             Message::Cycle
         }
     }
@@ -90,7 +90,7 @@ fn main() {
         format!("mqtt://{}", app_config.mqtt_host)
     };
 
-    info!("Broker URL: {}", broker_url);
+    info!("Broker URL: {broker_url}");
 
     let mut led_driver = LedDriver::new(
         peripherals.pins.gpio3,
@@ -109,7 +109,7 @@ fn main() {
             move |message_event| match message_event.payload() {
                 Connected(_) => tx.send(Message::Connected).unwrap(),
                 Received { data, details, .. } => process_message(data, details, &tx),
-                Error(e) => warn!("Received error from MQTT: {:?}", e),
+                Error(e) => warn!("Received error from MQTT: {e:?}"),
                 _ => info!("Received from MQTT: {:?}", message_event.payload()),
             },
         )
@@ -154,7 +154,7 @@ fn process_message(data: &[u8], details: Details, tx: &mpsc::Sender<Message>) {
     if details == Complete {
         let message_data: &[u8] = data;
         if let Ok(mode) = String::from_utf8(message_data.into()) {
-            info!("mode: {}", mode);
+            info!("mode: {mode}");
             tx.send(mode.into()).unwrap();
         }
     }
