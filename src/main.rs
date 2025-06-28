@@ -37,6 +37,8 @@ enum Message {
     Green,
     Blue,
     Purple,
+    White,
+    Cyan,
     Connected,
 }
 
@@ -54,6 +56,10 @@ impl From<String> for Message {
             Message::Blue
         } else if string.eq("purple") {
             Message::Purple
+        } else if string.eq("white") {
+            Message::White
+        } else if string.eq("cyan") {
+            Message::Cyan
         } else {
             // Default to Cycle for unknown
             warn!("Unknown mode: {string}, defaulting to Cycle");
@@ -131,6 +137,8 @@ fn main() {
                         Message::Green => get_green_seq(),
                         Message::Blue => get_blue_seq(),
                         Message::Purple => get_purple_seq(),
+                        Message::White => get_white_seq(),
+                        Message::Cyan => get_cyan_seq(),
                         Message::Connected => {
                             out = false;
                             client

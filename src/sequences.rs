@@ -81,3 +81,21 @@ pub fn get_purple_seq() -> Vec<Color> {
         duration: 3000,
     }]
 }
+
+pub fn get_white_seq() -> Vec<Color> {
+    vec![Color {
+        red: true,
+        green: true,
+        blue: true,
+        duration: 3000,
+    }]
+}
+
+pub fn get_cyan_seq() -> Vec<Color> {
+    vec![Color {
+        red: false,
+        green: true,
+        blue: true,
+        duration: 3000,
+    }]
+}
