@@ -20,23 +20,23 @@ debug = true    # Symbols are nice and they don't increase the size on Flash
 opt-level = 0
 
 [features]
-default = ["std", "embassy", "esp-idf-svc/native"]
+default = ["std", "esp-idf-svc/native"]
 pio = ["esp-idf-svc/pio"]
 std = ["alloc", "esp-idf-svc/binstart", "esp-idf-svc/std"]
 alloc = ["esp-idf-svc/alloc"]
 nightly = ["esp-idf-svc/nightly"]
 experimental = ["esp-idf-svc/experimental"]
-embassy = ["esp-idf-svc/embassy-sync", "esp-idf-svc/critical-section", "esp-idf-svc/embassy-time-driver"]
+#embassy = ["esp-idf-svc/embassy-sync", "esp-idf-svc/critical-section", "esp-idf-svc/embassy-time-driver"]
 
 [dependencies]
-anyhow = { version = "1.0.86" }
+anyhow = { version = "1.0.98" }
 log = { version = "0.4", default-features = false }
-esp-idf-svc = { version = "0.49" }
-esp-idf-hal = "0.44"
+esp-idf-svc = { version = "0.51" }
+esp-idf-hal = "0.45.2"
 toml-cfg = "0.1"
 wifi = { path = "./lib/wifi/" }
 embedded-svc = { version = "0.28" }
 
 [build-dependencies]
-embuild = "0.32"
+embuild = "0.33"
 toml-cfg = "0.1"
